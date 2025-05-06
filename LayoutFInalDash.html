@@ -1,0 +1,1709 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coaching NR85 IA - Simulação V24</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Base styles for body */
+    body {
+      background: #121212; /* Dark background */
+      color: #0099ff; /* Primary blue color */
+      font-family: 'Poppins', sans-serif; /* Use Poppins font */
+    }
+    /* Alert blinking animation */
+    .alerta {
+      color: #f00; /* Red color for alerts */
+      animation: piscar 1s infinite; /* Blinking animation */
+      font-weight: bold;
+      text-align: center;
+    }
+    /* Keyframes for blinking animation */
+    @keyframes piscar {
+      50% { opacity: 0.5; } /* Fade to 50% opacity */
+    }
+    /* Yellow blinking for low fuel */
+    @keyframes piscar-amarelo {
+      50% { color: rgba(255, 193, 7, 0.5); } /* Fade to 50% yellow opacity */
+    }
+    /* Red blinking for very low fuel */
+    @keyframes piscar-vermelho {
+      50% { color: rgba(244, 67, 54, 0.5); } /* Fade to 50% red opacity */
+    }
+
+    /* LED indicator styles */
+    .led {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%; /* Circular shape */
+      margin-left: 5px;
+      background-color: gray; /* Default gray */
+    }
+    .led.verde { background-color: #4CAF50; box-shadow: 0 0 5px #4CAF50; } /* Green LED */
+    .led.vermelho { background-color: #f44336; box-shadow: 0 0 5px #f44336; } /* Red LED */
+    .led.amarelo { background-color: #FFC107; box-shadow: 0 0 5px #FFC107; } /* Yellow LED */
+
+    /* Bar chart for Delta */
+    .bar-chart {
+      width: 100%;
+      height: 15px;
+      background: rgba(0, 68, 204, 0.2); /* Semi-transparent blue background */
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 5px;
+    }
+    .bar-fill {
+      height: 100%;
+      background: linear-gradient(to right, #4CAF50, #FF5722); /* Green to Orange gradient */
+      width: 0%;
+      transition: width 0.5s ease-in-out; /* Smooth width transition */
+    }
+    .bar-fill.positive {
+      background: linear-gradient(to right, #FF5722, #F44336); /* Orange to Red gradient for positive delta */
+    }
+    .bar-fill.negative {
+      background: linear-gradient(to right, #4CAF50, #8BC34A); /* Green to Light Green gradient for negative delta */
+    }
+
+    /* Track map section */
+    .track-map {
+      height: 120px;
+      background: rgba(30, 30, 60, 0.5); /* Dark semi-transparent background */
+      border-radius: 8px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      overflow: hidden; /* Ensure indicator stays within bounds */
+    }
+
+    /* Track map image */
+    .track-map img {
+      max-height: 100px;
+      max-width: 90%;
+      opacity: 0.8; /* Slightly transparent */
+    }
+
+    /* Section title within track map */
+    .track-map .section-title {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%); /* Center horizontally */
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #ffffff;
+        text-transform: uppercase;
+        z-index: 10; /* Ensure it's above the image and car */
+        text-shadow: 0 0 5px rgba(0, 153, 255, 0.5); /* Optional text shadow */
+    }
+
+    /* Car position indicator on track map */
+    .position-indicator {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background-color: #FF5722; /* Orange color */
+      border-radius: 50%; /* Circular shape */
+      box-shadow: 0 0 10px #FF5722; /* Glow effect */
+      transform: translate(-50%, -50%); /* Center the indicator */
+    }
+
+    /* Fuel bar */
+    .fuel-bar {
+      width: 100%;
+      height: 12px;
+      background: rgba(0, 68, 204, 0.2); /* Semi-transparent blue background */
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    /* Fuel level fill in the bar */
+    .fuel-level {
+      height: 100%;
+      background: linear-gradient(to right, #FF5722, #4CAF50); /* Orange to Green gradient */
+      width: 75%; /* Example initial width */
+    }
+
+    /* Tire temperature visualization (deprecated in favor of bar) */
+    .tire-temp {
+      width: 40px;
+      height: 60px;
+      background: linear-gradient(to bottom, #F44336, #4CAF50, #2196F3); /* Red to Green to Blue gradient */
+      border-radius: 5px;
+      position: relative;
+      overflow: hidden; /* Ensure fill stays within bounds */
+    }
+
+    /* Tire fill (deprecated) */
+    .tire-fill {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: #00ccff; /* Example fill color */
+        transition: height 0.5s ease-in-out;
+    }
+
+    /* Input Section: Meters + Timeline */
+    .input-section {
+        grid-column: 1 / -1; /* Span across both columns */
+        display: flex;
+        gap: 15px;
+        margin-top: 15px;
+        align-items: stretch; /* Make children stretch to equal height */
+    }
+
+    /* Input meters container */
+    .input-meters {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        align-items: flex-start; /* Align items to the start for bars */
+        padding: 10px;
+        background: rgba(10, 15, 35, 0.9); /* Darker semi-transparent background */
+        border-radius: 8px;
+        flex-basis: 150px; /* Slightly wider fixed width */
+        flex-shrink: 0; /* Prevent shrinking */
+    }
+
+    /* Individual input meter */
+    .input-meter {
+        text-align: left; /* Align text to the left */
+        width: 100%; /* Make meter take full width for bar positioning */
+        position: relative; /* Needed for absolute positioning of the bar */
+        padding-left: 5px; /* Add some padding for the bar */
+    }
+
+    /* Input meter value text */
+    .meter-value {
+        font-size: 1.2em;
+        font-weight: bold;
+        margin-bottom: 2px;
+        position: relative;
+        z-index: 1; /* Ensure text is above the bar */
+    }
+
+    /* Input meter label text */
+    .meter-label {
+        font-size: 0.7em;
+        color: #7aa2ff; /* Light blue color */
+        text-transform: uppercase;
+        position: relative;
+        z-index: 1; /* Ensure text is above the bar */
+    }
+
+    /* Input bar fill */
+    .input-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%; /* Bar takes full height of the meter div */
+        width: 0%; /* Initial width */
+        border-radius: 4px; /* Rounded corners */
+        opacity: 0.6; /* Slightly transparent */
+        transition: width 0.2s ease-out; /* Smooth width transition */
+    }
+
+    /* Input bar colors */
+    .input-bar.throttle { background-color: #4CAF50; } /* Green for Throttle */
+    .input-bar.brake { background-color: #f44336; } /* Red for Brake */
+    .input-bar.steering { background-color: #0099ff; } /* Blue for Steering */
+
+    /* Input timeline container */
+    .input-timeline-container {
+      flex-grow: 1; /* Takes remaining space */
+      background: rgba(10, 15, 35, 0.9); /* Darker semi-transparent background */
+      border-radius: 8px;
+      padding: 10px;
+      position: relative;
+      overflow: hidden;
+      display: flex; /* Use flex to align canvas and labels */
+    }
+
+    /* Timeline labels container */
+    .timeline-labels {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding-right: 10px; /* Space between labels and canvas */
+      font-size: 0.8em;
+      color: #7aa2ff; /* Light blue color */
+      text-align: right;
+      min-width: 20px; /* Smaller width for labels */
+    }
+     /* Hide timeline label numbers */
+     .timeline-labels div {
+         visibility: hidden;
+     }
+
+     /* Timeline canvas */
+     #inputTimelineCanvas {
+         flex-grow: 1; /* Canvas takes remaining space */
+         height: 100%; /* Canvas takes full height of its container */
+     }
+
+     /* Timeline markers (like "TIME" label) */
+     .timeline-markers {
+        position: absolute;
+        bottom: 5px;
+        left: 30px; /* Adjust based on label width */
+        right: 10px; /* Adjust based on padding */
+        display: flex;
+        justify-content: center; /* Center the "TIME" label */
+        color: #7aa2ff;
+        font-size: 0.8em;
+     }
+
+     /* Gradient text for logo */
+     .gradient-text {
+        background: linear-gradient(to right, #4CAF50, #ffffff, #f44336); /* Green to White to Red gradient */
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+     }
+
+     /* Rivals List Styling */
+     .rivals-list {
+        display: flex;
+        flex-direction: column;
+        position: relative; /* Needed for absolute positioning of rivals for transitions */
+        min-height: 100px; /* Give it a minimum height to avoid collapsing */
+     }
+
+     /* Individual rival item */
+     .rival {
+        display: flex;
+        justify-content: space-between;
+        padding: 5px 0;
+        font-size: 0.9rem;
+        border-bottom: 1px solid rgba(0, 68, 204, 0.2); /* Separator line */
+        position: absolute; /* Position absolutely for controlled movement */
+        width: 100%; /* Take full width of the container */
+        left: 0;
+        top: 0; /* Initial top position */
+        transition: top 0.5s ease-in-out; /* Smooth transition for vertical movement */
+     }
+
+     /* Remove border from last rival */
+     .rival:last-child {
+        border-bottom: none;
+     }
+
+     /* Color for rivals ahead */
+     .rival-ahead {
+        color: #FF5722; /* Orange */
+     }
+
+     /* Color for rivals behind */
+     .rival-behind {
+        color: #4CAF50; /* Green */
+     }
+
+     /* Tire Data Section */
+     .tire-data-section {
+        grid-column: 1 / -1; /* Span across both columns */
+        display: grid;
+        grid-template-columns: repeat(4, 1fr); /* 4 columns for 4 tires */
+        gap: 10px;
+        margin-top: 15px;
+        padding: 10px;
+        background: rgba(10, 15, 35, 0.9); /* Darker semi-transparent background */
+        border-radius: 8px;
+     }
+
+     /* Individual tire info item */
+     .tire-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 5px;
+        background: rgba(30, 30, 60, 0.5); /* Darker semi-transparent background */
+        border-radius: 5px;
+     }
+
+     /* Tire name/abbreviation */
+     .tire-name {
+        font-size: 0.8em;
+        color: #7aa2ff; /* Light blue color */
+        text-transform: uppercase;
+        margin-bottom: 5px;
+        transition: color 0.3s ease-in-out; /* Smooth color transition */
+     }
+
+     /* Tire Name Colors (Compound) */
+     .tire-name.wet { color: #2196F3; } /* Blue */
+     .tire-name.hard { color: #ffffff; } /* White */
+     .tire-name.medium { color: #FFC107; } /* Yellow */
+     .tire-name.soft { color: #f44336; } /* Red */
+
+     /* Tire temperature bar container */
+     .tire-temp-bar {
+        width: 80%;
+        height: 8px;
+        background: rgba(0, 68, 204, 0.2); /* Semi-transparent blue background */
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 5px;
+     }
+
+     /* Tire temperature bar fill */
+     .tire-temp-fill {
+        height: 100%;
+        width: 0%;
+        transition: width 0.3s ease-in-out, background-color 0.3s ease-in-out; /* Smooth transitions */
+     }
+
+     /* Tire Temperature Colors (Bar) */
+     .tire-temp-fill.cold { background-color: #2196F3; } /* Blue */
+     .tire-temp-fill.optimal { background-color: #4CAF50; } /* Green */
+     .tire-temp-fill.warm { background-color: #FFC107; } /* Yellow */
+     .tire-temp-fill.hot { background-color: #f44336; } /* Red */
+
+     /* Tire value text (temp/pressure) */
+     .tire-value {
+        font-size: 0.9em;
+        font-weight: bold;
+        transition: color 0.3s ease-in-out; /* Smooth color transition */
+     }
+
+     /* Tire Temperature/Pressure Value Colors (Text) */
+     .value-cold { color: #2196F3; } /* Blue */
+     .value-optimal { color: #4CAF50; } /* Green */
+     .value-warm { color: #FFC107; } /* Yellow */
+     .value-hot { color: #f44336; } /* Red */
+     .value-low { color: #2196F3; } /* Blue */
+     .value-high { color: #f44336; } /* Red */
+
+     /* RPM Color Transition */
+     .rpm-value {
+        transition: color 0.3s ease-in-out; /* Smooth color transition */
+     }
+
+     /* Fuel Icon Styling and Animations */
+     .fuel-icon {
+        margin-right: 5px;
+        transition: color 0.3s ease-in-out; /* Smooth color transition */
+     }
+
+     .fuel-icon.low-fuel {
+        color: #FFC107; /* Yellow */
+        animation: piscar-amarelo 1s infinite;
+     }
+
+     .fuel-icon.very-low-fuel {
+        color: #f44336; /* Red */
+        animation: piscar-vermelho 0.5s infinite alternate; /* Faster, alternating red blink */
+     }
+
+     /* Session Status Colors */
+     .session-practice { color: #7aa2ff; } /* Blue-ish */
+     .session-qualy { color: #FFC107; } /* Yellow */
+     .session-race { color: #f44336; } /* Red */
+
+     /* Race Condition Colors */
+     .race-condition-dry { color: #FFC107; } /* Yellow */
+     .race-condition-wet { color: #2196F3; } /* Blue */
+
+     /* Penalty Color */
+     .penalty-warning { color: #FFC107; } /* Yellow */
+     .penalty-critical { color: #f44336; } /* Red */
+
+     /* Pit Stop Message */
+     .pit-stop-message {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #FFC107; /* Yellow */
+        text-align: center;
+        margin-top: 20px;
+        animation: piscar 1s infinite;
+     }
+
+     /* Penalty Count Color and Size */
+     .penalty-count {
+         font-size: 1.2em; /* Make it slightly larger */
+         font-weight: bold;
+         transition: color 0.3s ease-in-out; /* Smooth color transition */
+     }
+     .penalty-count.critical { color: #f44336; } /* Red for critical penalty count */
+     .penalty-count.warning { color: #FFC107; } /* Yellow for warning penalty count */
+
+     /* Fuel Consumption Display */
+     .fuel-consumption-details {
+         display: grid;
+         grid-template-columns: repeat(3, 1fr); /* 3 columns for consumption types */
+         gap: 10px;
+         margin-top: 10px;
+         font-size: 0.8em;
+         text-align: center;
+     }
+
+     /* Individual consumption item */
+     .consumption-item {
+         display: flex;
+         flex-direction: column;
+         align-items: center;
+         padding: 5px;
+         background: rgba(30, 30, 60, 0.5); /* Darker semi-transparent background */
+         border-radius: 5px;
+     }
+
+     /* Consumption value text */
+     .consumption-value {
+         font-weight: bold;
+         margin-bottom: 2px;
+     }
+
+     /* Consumption label text */
+     .consumption-label {
+         color: #7aa2ff; /* Light blue color */
+         text-transform: uppercase;
+     }
+
+     /* Laps remaining fuel text */
+     .laps-remaining-fuel {
+         font-size: 0.9em;
+         color: #ffffff;
+         margin-top: 5px;
+     }
+
+     /* Brake Data Section */
+     .brake-data-section {
+        grid-column: 1 / -1; /* Span across both columns */
+        display: grid;
+        grid-template-columns: repeat(4, 1fr); /* 4 columns for 4 brakes */
+        gap: 10px;
+        margin-top: 15px;
+        padding: 10px;
+        background: rgba(10, 15, 35, 0.9); /* Darker semi-transparent background */
+        border-radius: 8px;
+     }
+
+     /* Individual brake info item */
+     .brake-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 5px;
+        background: rgba(30, 30, 60, 0.5); /* Darker semi-transparent background */
+        border-radius: 5px;
+     }
+
+     /* Brake name/abbreviation */
+     .brake-name {
+        font-size: 0.8em;
+        color: #7aa2ff; /* Light blue color */
+        text-transform: uppercase;
+        margin-bottom: 5px;
+     }
+
+     /* Brake temperature value text */
+     .brake-temp-value {
+        font-size: 0.9em;
+        font-weight: bold;
+        transition: color 0.3s ease-in-out; /* Smooth color transition */
+     }
+
+     /* Brake Temperature Value Colors (Text) */
+     .brake-temp-value.cold { color: #2196F3; } /* Blue */
+     .brake-temp-value.optimal { color: #4CAF50; } /* Green */
+     .brake-temp-value.hot { color: #f44336; } /* Red */
+
+
+  </style>
+</head>
+<body class="p-5">
+  <div class="container mx-auto border-2 border-blue-500 p-5 rounded-lg bg-gray-900 shadow-lg shadow-blue-500 flex flex-col gap-4 max-w-4xl">
+    <div class="header flex justify-between items-center pb-2 border-b border-blue-700 border-opacity-50">
+      <div class="logo text-2xl text-white">
+        <i class="fas fa-headset"></i> Coaching <span class="gradient-text">NR85</span> IA
+      </div>
+      <div class="session-info text-right text-blue-400">
+        <div>Circuito: <span class="destaque text-cyan-400 font-bold text-shadow shadow-cyan-400" id="circuito">Interlagos (Simulado)</span></div>
+        <div>Sessão: <span class="destaque text-cyan-400 font-bold text-shadow shadow-cyan-400" id="status">Corrida</span></div> </div>
+    </div>
+
+    <div class="main-grid grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <div class="info-box p-3 bg-blue-900 bg-opacity-70 rounded-lg shadow-lg shadow-blue-500 shadow-opacity-40 flex justify-between items-center">
+        <div><i class="fas fa-flag-checkered"></i> Volta: <span class="destaque text-cyan-400 font-bold text-shadow shadow-cyan-400" id="volta">1/20</span></div> <div>Clean: <span id="led_volta" class="led verde"></span></div>
+      </div>
+
+      <div class="info-box p-3 bg-blue-900 bg-opacity-70 rounded-lg shadow-lg shadow-blue-500 shadow-opacity-40 flex flex-col justify-between border border-blue-700"> <div class="position-info flex justify-around items-center w-full mb-2">
+            <div class="position-box text-center p-1 bg-blue-700 bg-opacity-20 rounded-md text-xs">
+              <div class="section-title text-blue-400 uppercase mb-1">Posição</div>
+              <div class="destaque text-cyan-400 font-bold text-shadow shadow-cyan-400" id="position">--</div>
+            </div>
+            <div class="position-box text-center p-1 bg-blue-700 bg-opacity-20 rounded-md text-xs">
+              <div class="section-title text-blue-400 uppercase mb-1">Total</div>
+              <div class="destaque text-cyan-400 font-bold text-shadow shadow-cyan-400" id="totalDrivers">--</div>
+            </div>
+            <div class="position-box text-center p-1 bg-blue-700 bg-opacity-20 rounded-md text-xs">
+              <div class="section-title text-blue-400 uppercase mb-1">Classe</div>
+              <div class="destaque text-cyan-400 font-bold text-shadow shadow-cyan-400" id="class-name">--</div> </div>
+          </div>
+
+          <div class="penalties-info flex justify-center items-center w-full mb-2 text-sm"> <span class="penalty-count" id="penalties">0</span>/<span id="dq-limit" class="font-bold">17</span> <span class="text-red-500 font-bold text-lg ml-1">X</span> </div>
+
+          <div class="race-status-info flex justify-around items-center w-full text-sm">
+              <div>Pista: <span id="race-condition" class="font-bold">Dry</span></div> <div><i class="fas fa-clock"></i> <span id="countdown-timer" class="font-bold">--:--</span></div> </div>
+      </div>
+
+
+      <div class="info-box p-3 bg-blue-900 bg-opacity-70 rounded-lg shadow-lg shadow-blue-500 shadow-opacity-40 flex justify-between items-center">
+        <div><i class="fas fa-flag-checkered text-green-500"></i> Atual: <span class="destaque text-cyan-400 font-bold text-shadow shadow-cyan-400" id="lap_time">0.00</span> s</div> <div><i class="fas fa-trophy"></i> Best: <span class="destaque text-cyan-400 font-bold text-shadow shadow-cyan-400" id="melhor">--:--</span></div>
+      </div>
+
+
+      <div class="info-box full-width md:col-span-2 p-3 bg-blue-900 bg-opacity-70 rounded-lg shadow-lg shadow-blue-500 shadow-opacity-40">
+        <div class="sector-times flex justify-between w-full">
+          <div class="sector text-center p-2 rounded-md bg-blue-700 bg-opacity-20" id="sector1">
+            <div class="section-title text-blue-400 text-xs uppercase mb-1">Setor 1</div>
+            <div class="destaque text-cyan-400 font-bold text-shadow shadow-cyan-400">--:--</div>
+          </div>
+          <div class="sector text-center p-2 rounded-md bg-blue-700 bg-opacity-20" id="sector2">
+            <div class="section-title text-blue-400 text-xs uppercase mb-1">Setor 2</div>
+            <div class="destaque text-cyan-400 font-bold text-shadow shadow-cyan-400">--:--</div>
+          </div>
+          <div class="sector text-center p-2 rounded-md bg-blue-700 bg-opacity-20" id="sector3">
+            <div class="section-title text-blue-400 text-xs uppercase mb-1">Setor 3</div>
+            <div class="destaque text-cyan-400 font-bold text-shadow shadow-cyan-400">--:--</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-box p-3 bg-blue-900 bg-opacity-70 rounded-lg shadow-lg shadow-blue-500 shadow-opacity-40 flex justify-between items-center">
+        <div class="w-full">
+          <div class="flex justify-between">
+            <span><i class="fas fa-chart-line"></i> Delta: </span>
+            <span class="destaque text-cyan-400 font-bold text-shadow shadow-cyan-400" id="delta">--</span>
+          </div>
+          <div class="bar-chart">
+            <div id="bar-fill" class="bar-fill"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-box full-width md:col-span-2 p-3 bg-blue-900 bg-opacity-70 rounded-lg shadow-lg shadow-blue-500 shadow-opacity-40">
+        <div class="rivals-info flex flex-col w-full">
+          <div class="section-title text-blue-400 text-xs uppercase mb-1">Relative</div> <div class="rivals-list" id="rivals-list">
+            </div>
+        </div>
+      </div>
+
+      <div class="track-map md:col-span-2">
+        <div class="section-title">Track Map</div> <img src="https://placehold.co/600x120/0a0f23" alt="Traçado da pista"> <div class="position-indicator" id="car-position" style="left:50%; top:50%"></div>
+      </div>
+
+      <div class="info-box p-3 bg-blue-900 bg-opacity-70 rounded-lg shadow-lg shadow-blue-500 shadow-opacity-40">
+        <div class="fuel-info flex flex-col w-full">
+          <div class="section-title text-blue-400 text-xs uppercase mb-1">
+            <i class="fas fa-gas-pump fuel-icon" id="fuel-icon"></i> Combustível </div>
+          <div class="fuel-bar">
+            <div class="fuel-level" id="fuel-level"></div>
+          </div>
+          <div class="fuel-details flex justify-between text-sm mt-1">
+            <span id="fuel-remaining">-- L</span>
+            <span id="laps-remaining">-- voltas</span>
+          </div>
+
+          <div class="fuel-consumption-details">
+              <div class="consumption-item">
+                  <div class="consumption-value" id="consumption-current">-- L/volta</div>
+                  <div class="consumption-label">Atual</div>
+                  <div class="laps-remaining-fuel" id="laps-remaining-current">-- voltas</div>
+              </div>
+              <div class="consumption-item">
+                  <div class="consumption-value" id="consumption-last-lap">-- L/volta</div>
+                  <div class="consumption-label">Última Volta</div>
+                  <div class="laps-remaining-fuel" id="laps-remaining-last-lap">-- voltas</div>
+              </div>
+              <div class="consumption-item">
+                  <div class="consumption-value" id="consumption-average">-- L/volta</div>
+                  <div class="consumption-label">Médio (5)</div>
+                  <div class="laps-remaining-fuel" id="laps-remaining-average">-- voltas</div>
+              </div>
+          </div>
+        </div>
+      </div>
+
+       <div class="tire-data-section">
+          <div class="tire-info">
+              <div class="tire-name" id="tire-name-de">DE</div> <div class="tire-temp-bar"><div class="tire-temp-fill" id="tire-temp-de"></div></div> <div class="tire-value" id="tire-pressure-de">-- psi</div> <div class="tire-value" id="tire-temp-value-de">-- °C</div> </div>
+          <div class="tire-info">
+              <div class="tire-name" id="tire-name-dd">DD</div> <div class="tire-temp-bar"><div class="tire-temp-fill" id="tire-temp-dd"></div></div> <div class="tire-value" id="tire-pressure-dd">-- psi</div> <div class="tire-value" id="tire-temp-value-dd">-- °C</div> </div>
+          <div class="tire-info">
+              <div class="tire-name" id="tire-name-te">TE</div> <div class="tire-temp-bar"><div class="tire-temp-fill" id="tire-temp-te"></div></div> <div class="tire-value" id="tire-pressure-te">-- psi</div> <div class="tire-value" id="tire-temp-value-te">-- °C</div> </div>
+          <div class="tire-info">
+              <div class="tire-name" id="tire-name-td">TD</div> <div class="tire-temp-bar"><div class="tire-temp-fill" id="tire-temp-td"></div></div> <div class="tire-value" id="tire-pressure-td">-- psi</div> <div class="tire-value" id="tire-temp-value-td">-- °C</div> </div>
+      </div>
+
+      <div class="brake-data-section">
+          <div class="brake-info">
+              <div class="brake-name">DE</div>
+              <div><i class="fas fa-circle"></i> <span class="brake-temp-value" id="brake-temp-de">-- °C</span></div> </div>
+          <div class="brake-info">
+              <div class="brake-name">DD</div>
+              <div><i class="fas fa-circle"></i> <span class="brake-temp-value" id="brake-temp-dd">-- °C</span></div> </div>
+          <div class="brake-info">
+              <div class="brake-name">TE</div>
+              <div><i class="fas fa-circle"></i> <span class="brake-temp-value" id="brake-temp-te">-- °C</span></div> </div>
+          <div class="brake-info">
+              <div class="brake-name">TD</div>
+              <div><i class="fas fa-circle"></i> <span class="brake-temp-value" id="brake-temp-td">-- °C</span></div> </div>
+      </div>
+
+
+      <div class="info-box p-3 bg-blue-900 bg-opacity-70 rounded-lg shadow-lg shadow-blue-500 shadow-opacity-40 flex justify-between items-center">
+        <div><i class="fas fa-tachometer-alt"></i> Speed: <span class="destaque text-cyan-400 font-bold text-shadow shadow-cyan-400" id="velocidade">0.0</span> km/h</div>
+        <div><i class="fas fa-car"></i> RPM: <span class="destaque text-cyan-400 font-bold text-shadow shadow-cyan-400 rpm-value" id="rpm">0</span></div> </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:col-span-2">
+          <div class="input-meters">
+              <div class="input-meter">
+                  <div class="meter-value text-green-500" id="throttle-meter">-- %</div>
+                  <div class="meter-label">Acelerador</div>
+                   <div class="input-bar throttle" id="throttle-bar"></div>
+              </div>
+              <div class="input-meter">
+                  <div class="meter-value text-red-500" id="brake-meter">-- %</div>
+                  <div class="meter-label">Freio</div>
+                  <div class="input-bar brake" id="brake-bar"></div>
+              </div>
+               <div class="input-meter">
+                  <div class="meter-value text-blue-500" id="steering-meter">-- %</div>
+                  <div class="meter-label">Direção</div>
+                   <div class="input-bar steering" id="steering-bar"></div>
+              </div>
+          </div>
+
+          <div class="input-timeline-container">
+            <div class="timeline-labels">
+              <div>100</div>
+              <div>80</div>
+              <div>60</div>
+              <div>40</div>
+              <div>0</div>
+            </div>
+            <canvas id="inputTimelineCanvas"></canvas>
+            <div class="timeline-markers">
+              <div class="marker">TEMPO</div>
+            </div>
+          </div>
+      </div>
+
+
+      <div class="coaching-tips md:col-span-2 p-4 bg-indigo-900 bg-opacity-70 rounded-lg border-l-4 border-blue-700 text-sm">
+        <div class="section-title text-blue-400 text-xs uppercase mb-2"><i class="fas fa-headset"></i> Coach NR85</div>
+        <div id="coaching-advice">
+          Simulando dados...
+        </div>
+      </div>
+
+      <div class="info-box alerta md:col-span-2 p-3 bg-blue-900 bg-opacity-70 rounded-lg shadow-lg shadow-blue-500 shadow-opacity-40" id="alertas">
+        <div><i class="fas fa-check-circle"></i> Status: ok</div>
+      </div>
+
+      <div class="pit-stop-message hidden md:col-span-2" id="pit-stop-message">PIT STOP!</div>
+
+    </div>
+  </div>
+
+  <script>
+    // Array to store input history for the timeline graph
+    const inputHistory = [];
+    const maxHistoryLength = 300; // Number of data points to show in the graph (simulates screen width)
+    let lapTimeCounter = 0; // Counter to simulate lap time
+    let currentLap = 1;
+    const totalLaps = 20; // Total laps for the session
+    let bestLapTime = null;
+    let isCleanLap = true;
+    let lapProgress = 0; // Simulates lap progress (0 to 1)
+    let speed = 0;
+    let rpm = 0;
+    let delta = 0;
+    const maxFuel = 100; // Maximum fuel capacity
+    let fuelRemaining = maxFuel; // Start with full fuel
+    let lapsRemaining = 20; // Simulates remaining laps (initial guess)
+    let position = 4; // Player position
+    let totalDrivers = 20;
+    let className = 'GT3'; // Initial class name
+    let sectorTimes = [null, null, null];
+    let bestSectorTimes = [null, null, null];
+    let personalBestSectorTimes = [null, null, null];
+    let currentSession = 'Corrida'; // Initial session type
+    let penalties = 0; // Simulated penalties
+    const dqLimit = 17; // Example DQ limit
+    let raceCondition = 'Dry'; // Initial race condition
+    let countdownTimer = 3600; // Simulated countdown timer in seconds (e.g., 1 hour)
+    let isPitting = false; // Flag to indicate if the car is in the pit stop
+    let pitStopDuration = 0; // Counter for pit stop duration
+    const pitStopLap = 5; // Lap to simulate the pit stop
+
+    // Fuel Consumption Variables
+    let fuelStartOfLap = maxFuel;
+    const lastLapFuelConsumption = []; // Stores consumption for the last few laps
+    const averageConsumptionLaps = 5; // Number of laps for average consumption
+
+    // Brake Temperature Variables
+    let simulatedBrakeTempData = {
+        de: 150, // Initial temperature in °C
+        dd: 160,
+        te: 140,
+        td: 155
+    };
+
+    // Brake Temperature Ranges (°C)
+    const brakeTempRanges = {
+        cold: [0, 150],
+        optimal: [150, 300],
+        hot: [300, 1000] // Assuming max temp won't exceed 1000 for simulation
+    };
+
+
+    // Simulated rival data
+    let simulatedRivals = [
+        { id: 1, name: "K. Magnussen", position: 3, gap: 2.45 },
+        { id: 2, name: "L. Norris", position: 5, gap: -1.21 },
+        { id: 3, name: "S. Perez", position: 2, gap: 5.10 },
+        { id: 4, name: "M. Verstappen", position: 1, gap: 10.00 },
+        { id: 5, name: "C. Leclerc", position: 6, gap: -0.50 }
+    ];
+
+    // Simulated tire data (Temperature in °C, Pressure in psi)
+    // Using the new abbreviations: de (Front Left), dd (Front Right), te (Rear Left), td (Rear Right)
+    let simulatedTireData = {
+        de: { temp: 85, pressure: 28.5, compound: 'Medium' }, // Added compound
+        dd: { temp: 88, pressure: 28.8, compound: 'Medium' }, // Added compound
+        te: { temp: 90, pressure: 29.0, compound: 'Medium' }, // Added compound
+        td: { temp: 91, pressure: 29.1, compound: 'Medium' } // Added compound
+    };
+
+    // RPM limits for color simulation
+    const idealRpmMin = 7000;
+    const idealRpmMax = 9000;
+    const limitRpm = 11000;
+
+    // Fuel limits for alert simulation
+    const lowFuelThreshold = 30; // Percentage
+    const veryLowFuelThreshold = 15; // Percentage
+
+    // Tire temperature and pressure limits for color simulation
+    const tempRanges = {
+        cold: [0, 80],
+        optimal: [80, 95],
+        warm: [95, 105],
+        hot: [105, 200] // Assuming max temp won't exceed 200 for simulation
+    };
+
+    const pressureRanges = {
+        low: [0, 28],
+        optimal: [28, 30],
+        high: [30, 50] // Assuming max pressure won't exceed 50 for simulation
+    };
+
+    // Penalty limit for alert
+    const penaltyWarningThreshold = dqLimit - 3; // Example: Warning 3 penalties before DQ
+
+
+    // Canvas configuration for the input timeline graph
+    const canvas = document.getElementById('inputTimelineCanvas');
+    const ctx = canvas.getContext('2d');
+    const labelsWidth = 40; // Width of labels on the left side (already handled by CSS)
+    const paddingRight = 10; // Padding on the right side of the canvas
+
+    // Function to resize the canvas
+    function resizeCanvas() {
+        const timelineContainer = document.querySelector('.input-timeline-container');
+        const labelsDiv = document.querySelector('.timeline-labels');
+        const markersDiv = document.querySelector('.timeline-markers');
+
+        // Set canvas size based on its container's computed size, subtracting space for labels and markers
+        const labelsOffset = labelsDiv ? labelsDiv.offsetWidth : 0;
+        const markersOffset = markersDiv ? markersDiv.offsetHeight : 0;
+
+        canvas.width = timelineContainer.clientWidth - (labelsOffset + paddingRight);
+        canvas.height = timelineContainer.clientHeight - markersOffset;
+
+        drawInputTimeline(); // Redraw after resizing
+    }
+
+    // Resize canvas initially and on window resize
+    window.addEventListener('resize', resizeCanvas);
+    window.onload = () => {
+        resizeCanvas(); // Initial resize
+        simulateGameData(); // Start simulation after canvas is ready
+        // Increase update frequency to 30 FPS (approximately 33ms)
+        setInterval(simulateGameData, 33);
+        // Simulate connection status
+        const alertasDiv = document.getElementById('alertas');
+        alertasDiv.innerHTML = '<div><i class="fas fa-check-circle"></i> Status: Simulação Ativa</div>';
+        alertasDiv.classList.remove('alerta');
+
+        // Start countdown timer simulation
+        setInterval(updateCountdown, 1000); // Update every second
+    };
+
+    // Function to format time in minutes:seconds.milliseconds
+    function formatarTempo(segundos) {
+      if (segundos === null || segundos === undefined) return '--:--';
+
+      const min = Math.floor(segundos / 60);
+      const seg = (segundos % 60).toFixed(2).padStart(5, '0');
+      return `${min}:${seg}`;
+    }
+
+    // Function to format time in HH:MM:SS
+    function formatarTempoHMS(segundos) {
+        if (segundos === null || segundos === undefined || segundos < 0) return '--:--';
+
+        const h = Math.floor(segundos / 3600);
+        const m = Math.floor((segundos % 3600) / 60);
+        const s = Math.floor(segundos % 60);
+
+        const formattedH = h > 0 ? h + ':' : '';
+        const formattedM = (h > 0 || m > 0) ? String(m).padStart(2, '0') + ':' : '';
+        const formattedS = String(s).padStart(2, '0');
+
+        return `${formattedH}${formattedM}${formattedS}`;
+    }
+
+    // Calculates remaining laps based on consumption and remaining fuel
+    function calculateLapsRemaining(consumptionPerLap) {
+        if (consumptionPerLap <= 0 || fuelRemaining <= 0) return '--';
+        return Math.floor(fuelRemaining / consumptionPerLap);
+    }
+
+
+    // Function to update the Delta graph
+    function atualizarDelta(delta) {
+      const deltaSpan = document.getElementById('delta');
+      const barFill = document.getElementById('bar-fill');
+
+      if (typeof delta === 'number') {
+        deltaSpan.textContent = (delta >= 0 ? '+' : '') + delta.toFixed(2);
+
+        if (delta < 0) {
+          deltaSpan.style.color = '#4CAF50'; // Green
+          barFill.className = 'bar-fill negative';
+        } else {
+          deltaSpan.style.color = '#FF5722'; // Orange
+          barFill.className = 'bar-fill positive';
+        }
+
+        // Map delta value to bar width
+        // Assuming delta varies from -2 to +2 seconds for simplicity
+        const maxDelta = 2;
+        const absDelta = Math.abs(delta);
+        const widthPercentage = Math.min(100, (absDelta / maxDelta) * 100);
+        barFill.style.width = widthPercentage + '%';
+
+      } else {
+        deltaSpan.textContent = '--';
+        deltaSpan.style.color = '#0099ff'; // Default color
+        barFill.style.width = '0%';
+        barFill.className = 'bar-fill'; // Reset class
+      }
+    }
+
+    // Function to update the clean lap LED
+    function atualizarLedVolta(clean) {
+        const led = document.getElementById('led_volta');
+        if (clean === true) {
+            led.className = 'led verde';
+        } else if (clean === false) {
+            led.className = 'led vermelho';
+        } else {
+            led.className = 'led'; // Gray or default
+        }
+    }
+
+    // Function to update sector times
+    function atualizarSetor(sectorId, time, isBest, isPersonalBest) {
+        const sectorDiv = document.getElementById(sectorId);
+        const timeSpan = sectorDiv.querySelector('.destaque');
+
+        if (time === null || time === undefined) {
+             timeSpan.textContent = '--:--';
+             sectorDiv.className = 'sector text-center p-2 rounded-md bg-blue-700 bg-opacity-20'; // Reset class
+        } else {
+            timeSpan.textContent = formatarTempo(time);
+            sectorDiv.className = 'sector text-center p-2 rounded-md'; // Reset base class
+            if (isBest) {
+                sectorDiv.classList.add('bg-green-700', 'bg-opacity-30', 'best');
+            } else if (isPersonalBest) {
+                sectorDiv.classList.add('bg-yellow-700', 'bg-opacity-30', 'personal-best');
+            } else {
+                 sectorDiv.classList.add('bg-blue-700', 'bg-opacity-20');
+            }
+        }
+    }
+
+    // Function to update fuel information with icon, animation, and consumption
+    function atualizarFuel(fuelRemaining, lapsRemaining) {
+        const fuelRemainingSpan = document.getElementById('fuel-remaining');
+        const lapsRemainingSpan = document.getElementById('laps-remaining');
+        const fuelLevelBar = document.getElementById('fuel-level');
+        const fuelIcon = document.getElementById('fuel-icon'); // Get the fuel icon
+
+        const consumptionCurrentSpan = document.getElementById('consumption-current');
+        const consumptionLastLapSpan = document.getElementById('consumption-last-lap');
+        const consumptionAverageSpan = document.getElementById('consumption-average');
+        const lapsRemainingCurrentSpan = document.getElementById('laps-remaining-current');
+        const lapsRemainingLastLapSpan = document.getElementById('laps-remaining-last-lap');
+        const lapsRemainingAverageSpan = document.getElementById('laps-remaining-average');
+
+
+        if (typeof fuelRemaining === 'number') {
+             fuelRemainingSpan.textContent = fuelRemaining.toFixed(1) + ' L';
+             // Assuming max fuel capacity for percentage calculation, e.g., 100L
+             const percentage = Math.min(100, Math.max(0, (fuelRemaining / maxFuel) * 100));
+             fuelLevelBar.style.width = percentage + '%';
+
+             // Update fuel icon color and animation based on percentage
+             fuelIcon.classList.remove('low-fuel', 'very-low-fuel'); // Remove previous classes
+             if (percentage < veryLowFuelThreshold) {
+                 fuelIcon.classList.add('very-low-fuel');
+             } else if (percentage < lowFuelThreshold) {
+                 fuelIcon.classList.add('low-fuel');
+             } else {
+                 fuelIcon.style.color = ''; // Reset to default color if above thresholds
+                 fuelIcon.style.animation = ''; // Remove animation
+             }
+
+             // Simulate current consumption (simple random variation)
+             const currentConsumption = (Math.random() * 0.5 + 1.5); // Example: 1.5 to 2.0 L/lap
+             consumptionCurrentSpan.textContent = `${currentConsumption.toFixed(2)} L/volta`;
+             lapsRemainingCurrentSpan.textContent = `${calculateLapsRemaining(currentConsumption)} voltas`;
+
+
+        } else {
+             fuelRemainingSpan.textContent = '-- L';
+             fuelLevelBar.style.width = '0%';
+             fuelIcon.classList.remove('low-fuel', 'very-low-fuel'); // Reset icon state
+             fuelIcon.style.color = ''; // Reset to default color
+             fuelIcon.style.animation = ''; // Remove animation
+             consumptionCurrentSpan.textContent = '-- L/volta';
+             lapsRemainingCurrentSpan.textContent = '-- voltas';
+        }
+
+        if (typeof lapsRemaining === 'number') {
+            lapsRemainingSpan.textContent = lapsRemaining.toFixed(0) + ' voltas';
+        } else {
+            lapsRemainingSpan.textContent = '-- voltas';
+        }
+
+        // Update Last Lap and Average Consumption (handled in simulateGameData on lap end)
+         if (lastLapFuelConsumption.length > 0) {
+             const lastLapCons = lastLapFuelConsumption[lastLapFuelConsumption.length - 1];
+             consumptionLastLapSpan.textContent = `${lastLapCons.toFixed(2)} L/volta`;
+             lapsRemainingLastLapSpan.textContent = `${calculateLapsRemaining(lastLapCons)} voltas`;
+         } else {
+             consumptionLastLapSpan.textContent = '-- L/volta';
+             lapsRemainingLastLapSpan.textContent = '-- voltas';
+         }
+
+         if (lastLapFuelConsumption.length > 0) {
+             const averageCons = lastLapFuelConsumption.slice(-averageConsumptionLaps).reduce((sum, cons) => sum + cons, 0) / Math.min(lastLapFuelConsumption.length, averageConsumptionLaps);
+             consumptionAverageSpan.textContent = `${averageCons.toFixed(2)} L/volta`;
+             lapsRemainingAverageSpan.textContent = `${calculateLapsRemaining(averageCons)} voltas`;
+         } else {
+             consumptionAverageSpan.textContent = '-- L/volta';
+             lapsRemainingAverageSpan.textContent = '-- voltas';
+         }
+
+
+    }
+
+     // Function to update input meters (percentages and bars)
+    function atualizarInputMeters(brake, throttle, steering) {
+        const throttleMeterValue = document.getElementById('throttle-meter');
+        const brakeMeterValue = document.getElementById('brake-meter');
+        const steeringMeterValue = document.getElementById('steering-meter');
+
+        const throttleBar = document.getElementById('throttle-bar');
+        const brakeBar = document.getElementById('brake-bar');
+        const steeringBar = document.getElementById('steering-bar');
+
+
+        throttleMeterValue.textContent = `${Math.round(throttle)} %`;
+        brakeMeterValue.textContent = `${Math.round(brake)} %`;
+        // Map steering from -1 to 1 to 0 to 100% for display
+        const steeringPercentage = Math.round(((steering + 1) / 2) * 100);
+        steeringMeterValue.textContent = `${steeringPercentage} %`;
+
+        // Update bar widths
+        throttleBar.style.width = `${Math.round(throttle)}%`;
+        brakeBar.style.width = `${Math.round(brake)}%`;
+        steeringBar.style.width = `${steeringPercentage}%`;
+    }
+
+
+    // Function to draw the input timeline graph on the Canvas using curves
+    function drawInputTimeline() {
+        if (!canvas || !ctx) return;
+
+        const width = canvas.width;
+        const height = canvas.height;
+
+        // Clear the canvas
+        ctx.clearRect(0, 0, width, height);
+
+        // Draw X axis (0% base line)
+        ctx.strokeStyle = 'rgba(0, 153, 255, 0.5)'; /* Semi-transparent blue */
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, height);
+        ctx.lineTo(width, height);
+        ctx.stroke();
+
+        // Draw horizontal grid lines (optional, for visual reference without numbers)
+        ctx.strokeStyle = 'rgba(0, 153, 255, 0.1)'; /* Very light semi-transparent blue */
+        const numLines = 4; // 0, 25, 50, 75, 100
+        for (let i = 0; i <= numLines; i++) {
+            const y = height - (height / numLines) * i;
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(width, y);
+            ctx.stroke();
+        }
+
+        // Draw input lines using curves
+        if (inputHistory.length < 2) return;
+
+        const pointWidth = width / (maxHistoryLength - 1);
+
+        // Helper function to draw a quadratic curve
+        function drawCurve(dataKey, color, lineWidth, opacity = 1) {
+            ctx.strokeStyle = `rgba(${parseInt(color.slice(1, 3), 16)}, ${parseInt(color.slice(3, 5), 16)}, ${parseInt(color.slice(5, 7), 16)}, ${opacity})`;
+            ctx.lineWidth = lineWidth;
+            ctx.beginPath();
+
+            // Start at the rightmost point (most recent)
+            let currentX = width;
+            let currentY;
+            if (dataKey === 'steering') {
+                 // Map steering from -1/1 to 0/100% of height
+                 currentY = height - ((inputHistory[inputHistory.length - 1][dataKey] + 1) / 2) * height;
+            } else {
+                 currentY = height - (inputHistory[inputHistory.length - 1][dataKey] / 100) * height;
+            }
+            ctx.moveTo(currentX, currentY);
+
+            for (let i = inputHistory.length - 2; i >= 0; i--) {
+                const previousX = width - (inputHistory.length - 1 - (i + 1)) * pointWidth;
+                const previousY = currentY; // Previous point Y (to smooth the curve)
+
+                currentX = width - (inputHistory.length - 1 - i) * pointWidth;
+                 if (dataKey === 'steering') {
+                    currentY = height - ((inputHistory[i][dataKey] + 1) / 2) * height;
+                 } else {
+                    currentY = height - (inputHistory[i][dataKey] / 100) * height;
+                 }
+
+                // Calculate control point for the quadratic curve
+                 const controlX = previousX + (currentX - previousX) / 2;
+                 const controlY = previousY; // Control point at the height of the previous point
+
+                // Draw the quadratic curve to the current point
+                ctx.quadraticCurveTo(controlX, controlY, currentX, currentY);
+
+            }
+            ctx.stroke();
+        }
+
+        // Draw the lines (order might matter for overlap)
+        // Draw Steering first with transparency to be underneath
+        drawCurve('steering', '#0099ff', 1, 0.5); // Blue with 50% opacity
+        // Draw Brake and Throttle on top
+        drawCurve('brake', '#ff4444', 2); // Red
+        drawCurve('throttle', '#4CAF50', 2); // Green
+
+    }
+
+    // Function to update the rival list display with transitions
+    function updateRivalsDisplay(rivals) {
+        const rivalsListDiv = document.getElementById('rivals-list');
+
+        // Add the current player to the list for display
+        const playerRival = { id: 'player', name: "[VOCÊ]", position: position, gap: 0 };
+        const allRacers = [...rivals, playerRival]; // Corrected typo here
+
+        // Sort all racers by position
+        allRacers.sort((a, b) => a.position - b.position);
+
+        // Map IDs to existing HTML elements
+        const existingRivalElements = {};
+        rivalsListDiv.querySelectorAll('.rival').forEach(el => {
+            existingRivalElements[el.dataset.rivalId] = el;
+        });
+
+        const newRivalElements = [];
+        const lineHeight = 25; // Approximate height of each rival row
+
+        allRacers.forEach((rival, index) => {
+            let rivalDiv = existingRivalElements[rival.id];
+
+            if (!rivalDiv) {
+                // Create new element if it doesn't exist
+                rivalDiv = document.createElement('div');
+                rivalDiv.classList.add('rival');
+                rivalDiv.dataset.rivalId = rival.id; // Store ID in dataset
+                rivalDiv.style.position = 'absolute'; // Ensure absolute positioning for transition
+                rivalDiv.style.width = '100%'; // Take full width
+                rivalsListDiv.appendChild(rivalDiv); // Add to DOM
+            }
+
+            // Update content and classes
+            rivalDiv.innerHTML = `<span>P${rival.position}: ${rival.name}</span><span>${rival.gap === 0 ? '--' : (rival.gap > 0 ? '+' : '') + rival.gap.toFixed(2) + 's'}</span>`;
+            rivalDiv.classList.remove('rival-ahead', 'rival-behind');
+            if (rival.gap > 0) {
+                rivalDiv.classList.add('rival-ahead');
+            } else if (rival.gap < 0) {
+                rivalDiv.classList.add('rival-behind');
+            }
+
+            // Calculate the new vertical position
+            const newTop = index * lineHeight;
+            rivalDiv.style.top = `${newTop}px`; // Set vertical position
+
+            newRivalElements.push(rivalDiv);
+        });
+
+        // Remove elements that are no longer in the list
+        Object.keys(existingRivalElements).forEach(id => {
+            if (!allRacers.find(r => r.id == id)) {
+                // Optional: Add a fading out effect before removing
+                // existingRivalElements[id].style.opacity = 0;
+                // setTimeout(() => rivalsListDiv.removeChild(existingRivalElements[id]), 500); // Remove after transition
+                 rivalsListDiv.removeChild(existingRivalElements[id]); // Simple removal
+            }
+        });
+
+        // Adjust the height of the rivals-list container to accommodate all elements
+        rivalsListDiv.style.height = `${allRacers.length * lineHeight}px`; // Adjust container height
+    }
+
+    // Function to update tire data display
+    function updateTireDisplay(tireData) {
+        // Using the new abbreviations: de, dd, te, td
+        const tires = ['de', 'dd', 'te', 'td'];
+        tires.forEach(tireKey => {
+            const tireNameSpan = document.getElementById(`tire-name-${tireKey}`); // Get the span for tire name
+            const tempFill = document.getElementById(`tire-temp-${tireKey}`);
+            const pressureValueSpan = document.getElementById(`tire-pressure-${tireKey}`); // Get the span for pressure value
+            const tempValueSpan = document.getElementById(`tire-temp-value-${tireKey}`); // Get the span for temp value
+
+            const temp = tireData[tireKey].temp;
+            const pressure = tireData[tireKey].pressure;
+            const compound = tireData[tireKey].compound; // Get the compound
+
+            // Update text content
+            pressureValueSpan.textContent = `${pressure.toFixed(1)} psi`;
+            tempValueSpan.textContent = `${temp.toFixed(0)} °C`;
+
+            // Update tire name color based on compound
+            tireNameSpan.classList.remove('wet', 'hard', 'medium', 'soft');
+            if (compound === 'Wet') {
+                tireNameSpan.classList.add('wet');
+            } else if (compound === 'Hard') {
+                tireNameSpan.classList.add('hard');
+            } else if (compound === 'Medium') {
+                tireNameSpan.classList.add('medium');
+            } else if (compound === 'Soft') {
+                tireNameSpan.classList.add('soft');
+            }
+
+            // Update temperature bar (mapping temperature to bar width)
+            // Assuming a reasonable temperature range, e.g., 70°C to 110°C
+            const minTemp = 70;
+            const maxTemp = 110;
+            const percentage = Math.min(100, Math.max(0, (temp - minTemp) / (maxTemp - minTemp)) * 100);
+            tempFill.style.width = `${percentage}%`;
+
+            // Update temperature bar color based on temperature
+            tempFill.classList.remove('cold', 'optimal', 'warm', 'hot');
+            if (temp < tempRanges.cold[1]) {
+                tempFill.classList.add('cold');
+            } else if (temp >= tempRanges.optimal[0] && temp < tempRanges.optimal[1]) {
+                tempFill.classList.add('optimal');
+            } else if (temp >= tempRanges.warm[0] && temp < tempRanges.warm[1]) {
+                tempFill.classList.add('warm');
+            } else {
+                tempFill.classList.add('hot');
+            }
+
+            // Update temperature text color
+            tempValueSpan.classList.remove('value-cold', 'value-optimal', 'value-warm', 'value-hot');
+             if (temp < tempRanges.cold[1]) {
+                tempValueSpan.classList.add('value-cold');
+            } else if (temp >= tempRanges.optimal[0] && temp < tempRanges.optimal[1]) {
+                tempValueSpan.classList.add('value-optimal');
+            } else if (temp >= tempRanges.warm[0] && temp < tempRanges.warm[1]) {
+                tempValueSpan.classList.add('value-warm');
+            } else {
+                tempValueSpan.classList.add('value-hot');
+            }
+
+            // Update pressure text color
+            pressureValueSpan.classList.remove('value-low', 'value-optimal', 'value-high');
+            if (pressure < pressureRanges.optimal[0]) {
+                pressureValueSpan.classList.add('value-low');
+            } else if (pressure >= pressureRanges.optimal[0] && pressure <= pressureRanges.optimal[1]) {
+                pressureValueSpan.classList.add('value-optimal');
+            } else {
+                pressureValueSpan.classList.add('value-high');
+            }
+        });
+    }
+
+    // Function to update brake temperature display
+    function updateBrakeDisplay(brakeData) {
+        const brakes = ['de', 'dd', 'te', 'td'];
+        brakes.forEach(brakeKey => {
+            const tempValueSpan = document.getElementById(`brake-temp-${brakeKey}`); // Get the span for temp value
+            const temp = brakeData[brakeKey];
+
+            // Update text content
+            tempValueSpan.textContent = `${temp.toFixed(0)} °C`;
+
+            // Update brake temperature text color
+            tempValueSpan.classList.remove('cold', 'optimal', 'hot');
+            if (temp < brakeTempRanges.optimal[0]) {
+                tempValueSpan.classList.add('cold');
+            } else if (temp >= brakeTempRanges.optimal[0] && temp < brakeTempRanges.optimal[1]) {
+                tempValueSpan.classList.add('optimal');
+            } else {
+                tempValueSpan.classList.add('hot');
+            }
+        });
+    }
+
+    // Function to update RPM display with color transition
+    function atualizarRPM(rpm) {
+        const rpmSpan = document.getElementById('rpm');
+        rpmSpan.textContent = Math.floor(rpm);
+
+        // Remove previous color classes
+        rpmSpan.classList.remove('text-white', 'text-green-500', 'text-red-700');
+        rpmSpan.style.color = ''; // Reset inline color
+
+        // Set color based on RPM range
+        if (rpm < idealRpmMin) {
+            rpmSpan.classList.add('text-white'); // White for low RPM
+        } else if (rpm >= idealRpmMin && rpm <= idealRpmMax) {
+            rpmSpan.classList.add('text-green-500'); // Green for ideal RPM
+        } else if (rpm > idealRpmMax && rpm < limitRpm) {
+             // Gradual transition to red before the limit
+             // Calculate red intensity based on proximity to the limit
+             const percentageToLimit = (rpm - idealRpmMax) / (limitRpm - idealRpmMax);
+             const redIntensity = Math.floor(255 * percentageToLimit);
+             const greenIntensity = Math.floor(255 * (1 - percentageToLimit));
+             rpmSpan.style.color = `rgb(${redIntensity}, ${greenIntensity}, 0)`; // Gradual transition from green-ish to red
+        }
+        else {
+            rpmSpan.classList.add('text-red-700'); // Dark red for limit RPM
+        }
+    }
+
+    // Function to update session type and its color
+    function atualizarSession(sessionType) {
+        const statusSpan = document.getElementById('status');
+        statusSpan.textContent = sessionType;
+
+        // Remove previous session classes
+        statusSpan.classList.remove('session-practice', 'session-qualy', 'session-race');
+
+        // Add the correct color class
+        if (sessionType === 'Prática') {
+            statusSpan.classList.add('session-practice');
+        } else if (sessionType === 'Qualy') {
+            statusSpan.classList.add('session-qualy');
+        } else if (sessionType === 'Corrida') {
+            statusSpan.classList.add('session-race');
+        }
+    }
+
+    // Function to update penalties display and DQ limit
+    function atualizarPenalties(penalties, dqLimit) {
+        const penaltiesSpan = document.getElementById('penalties');
+        const dqLimitSpan = document.getElementById('dq-limit');
+
+        penaltiesSpan.textContent = penalties;
+        dqLimitSpan.textContent = dqLimit;
+
+        // Remove previous color classes from penalty count
+        penaltiesSpan.classList.remove('penalty-warning', 'penalty-critical');
+
+        // Add color class to penalty count based on limit
+        if (penalties >= dqLimit) {
+            penaltiesSpan.classList.add('penalty-critical');
+        } else if (penalties >= penaltyWarningThreshold) {
+            penaltiesSpan.classList.add('penalty-warning');
+        }
+    }
+
+    // Function to update track condition and its color
+    function atualizarRaceCondition(condition) {
+        const raceConditionSpan = document.getElementById('race-condition');
+        raceConditionSpan.textContent = condition;
+
+        // Remove previous condition classes
+        raceConditionSpan.classList.remove('race-condition-dry', 'race-condition-wet');
+
+        // Add the correct color class
+        if (condition === 'Dry') {
+            raceConditionSpan.classList.add('race-condition-dry');
+        } else if (condition === 'Wet') {
+            raceConditionSpan.classList.add('race-condition-wet');
+        }
+    }
+
+    // Function to update the countdown timer
+    function updateCountdown() {
+        const countdownSpan = document.getElementById('countdown-timer');
+
+        if (countdownTimer > 0 && !isPitting) { // Pause countdown during pit stop
+            countdownTimer--;
+            countdownSpan.textContent = formatarTempoHMS(countdownTimer);
+        } else if (countdownTimer <= 0) {
+             countdownSpan.textContent = "FIM"; // Or "00:00"
+        }
+    }
+
+    // Function to simulate a pit stop
+    function simulatePitStop() {
+        isPitting = true;
+        const pitStopMessageDiv = document.getElementById('pit-stop-message');
+        pitStopMessageDiv.classList.remove('hidden'); // Show pit stop message
+
+        // Simulate pit stop duration (e.g., 20 seconds)
+        pitStopDuration = 20;
+        const pitInterval = setInterval(() => {
+            pitStopDuration--;
+            // Update pit stop message or a progress bar if desired
+
+            if (pitStopDuration <= 0) {
+                clearInterval(pitInterval);
+                isPitting = false;
+                pitStopMessageDiv.classList.add('hidden'); // Hide pit stop message
+
+                // Actions after pit stop:
+                fuelRemaining = maxFuel; // Refuel
+                fuelStartOfLap = maxFuel; // Reset fuel at start of lap for consumption calculation
+                lastLapFuelConsumption.length = 0; // Clear consumption history after pit stop (optional, depends on desired behavior)
+
+                // Change tire compound (simulate changing to Soft after starting on Medium)
+                const newCompound = simulatedTireData['de'].compound === 'Medium' ? 'Soft' : 'Medium'; // Toggle compound
+                 const tires = ['de', 'dd', 'te', 'td'];
+                 tires.forEach(tireKey => {
+                     simulatedTireData[tireKey].compound = newCompound;
+                     // Reset tire temps and pressures to typical cold values
+                     simulatedTireData[tireKey].temp = 75 + Math.random() * 5;
+                     simulatedTireData[tireKey].pressure = 27 + Math.random() * 0.5;
+                 });
+
+                // Reset brake temperatures to cold values after pit stop
+                const brakes = ['de', 'dd', 'te', 'td'];
+                brakes.forEach(brakeKey => {
+                    simulatedBrakeTempData[brakeKey] = 80 + Math.random() * 20; // Simulate cold brakes
+                });
+
+
+                // Simulate losing positions during pit stop
+                position = Math.min(totalDrivers, position + Math.floor(Math.random() * 3) + 1); // Lose 1-3 positions
+                // Simulate rivals gaining time during pit stop
+                simulatedRivals.forEach(rival => {
+                     if (rival.position < position) { // If rival is ahead
+                         rival.gap += Math.random() * 5 + 5; // Add 5-10 seconds to their gap
+                     } else if (rival.position > position) { // If rival is behind
+                         rival.gap -= Math.random() * 5 + 5; // Subtract 5-10 seconds from their gap
+                     }
+                     rival.gap = parseFloat(rival.gap.toFixed(2)); // Keep gap formatted
+                });
+
+                // Reset delta after pit stop (optional)
+                delta = 0;
+            }
+        }, 1000); // Update pit stop duration every second
+    }
+
+
+    // Function to simulate receiving game data
+    function simulateGameData() {
+        if (isPitting) {
+            // If pitting, only update pit stop related info (handled by simulatePitStop interval)
+            // Optionally, you could update static info like lap number, position (if it changes during pit entry/exit)
+             document.getElementById('volta').textContent = `${currentLap}/${totalLaps}`; // Keep lap display updated
+             atualizarPenalties(penalties, dqLimit); // Keep penalties updated
+             atualizarRaceCondition(raceCondition); // Keep race condition updated
+             updateBrakeDisplay(simulatedBrakeTempData); // Keep brake temp updated (they cool down)
+            return; // Skip normal simulation updates
+        }
+
+        // Simulate random data
+        lapTimeCounter += 0.033; // Increment lap time every 33ms (simulating 30 FPS)
+        lapProgress = (lapTimeCounter % 60) / 60; // Simulate progress based on time (simplified)
+        speed = Math.max(0, 50 + Math.sin(lapTimeCounter / 5) * 150 + Math.random() * 20); // Simulate speed
+
+        // Simulate RPM with peaks near the limit
+        rpm = Math.max(0, 3000 + Math.sin(lapTimeCounter / 1) * 5000 + Math.random() * 2000); // Simulate RPM
+        if (Math.random() < 0.05) { // Reduced chance of hitting limit
+             rpm = limitRpm - Math.random() * 500;
+        }
+         rpm = Math.min(12000, Math.max(0, rpm)); // Limit simulated RPM
+
+        delta = Math.sin(lapTimeCounter / 10) * 1.5 + Math.random() * 0.5 - 0.25; // Simulate delta
+
+        // Simulate inputs (values between 0 and 100 for brake/throttle, -1 and 1 for steering)
+        const brakeInput = Math.max(0, Math.sin(lapTimeCounter * 2) * 50 + 50 + Math.random() * 10 - 5);
+        const throttleInput = Math.max(0, Math.cos(lapTimeCounter * 2) * 50 + 50 + Math.random() * 10 - 5);
+        const steeringInput = Math.sin(lapTimeCounter * 3) * 0.8 + Math.random() * 0.2 - 0.1;
+
+        // Add inputs to history
+        inputHistory.push({
+            brake: Math.min(100, Math.max(0, brakeInput)), // Ensure between 0 and 100
+            throttle: Math.min(100, Math.max(0, throttleInput)), // Ensure between 0 and 100
+            steering: Math.min(1, Math.max(-1, steeringInput)) // Ensure between -1 and 1
+        });
+
+        // Keep history limited to maxHistoryLength
+        if (inputHistory.length > maxHistoryLength) {
+            inputHistory.shift(); // Remove the oldest point
+        }
+
+        // Simulate tire data
+        // Using the new abbreviations: de, dd, te, td
+        const tires = ['de', 'dd', 'te', 'td'];
+        const compounds = ['Wet', 'Hard', 'Medium', 'Soft']; // Possible compounds
+        tires.forEach(tireKey => {
+            // Simulate temperature and pressure variation
+            simulatedTireData[tireKey].temp += (Math.random() * 1 - 0.5); // Small variation
+            simulatedTireData[tireKey].pressure += (Math.random() * 0.1 - 0.05); // Small variation
+
+            // Keep values within reasonable ranges (simulation)
+            simulatedTireData[tireKey].temp = Math.min(115, Math.max(70, simulatedTireData[tireKey].temp));
+            simulatedTireData[tireKey].pressure = Math.min(35, Math.max(25, simulatedTireData[tireKey].pressure));
+
+             // Simulate compound change occasionally (for demonstration) - Moved to pit stop
+            // if (Math.random() < 0.005) { // Small chance to change compound
+            //      simulatedTireData[tireKey].compound = compounds[Math.floor(Math.random() * compounds.length)];
+            // }
+        });
+
+        // Simulate brake temperatures
+         const brakes = ['de', 'dd', 'te', 'td'];
+         brakes.forEach(brakeKey => {
+             // Simulate temperature increase based on brake input and speed
+             const brakeEffect = brakeInput / 100; // Brake input from 0 to 1
+             const speedEffect = speed / 300; // Speed effect (example: max effect at 300 km/h)
+             const heatGenerated = (brakeEffect * speedEffect * 100) + (Math.random() * 5); // More heat with more brake/speed
+             const cooling = (simulatedBrakeTempData[brakeKey] - 80) * 0.1; // Simple cooling towards a base temp (e.g., 80°C)
+
+             simulatedBrakeTempData[brakeKey] += heatGenerated - cooling;
+
+             // Keep temperatures within a reasonable range
+             simulatedBrakeTempData[brakeKey] = Math.min(900, Math.max(80, simulatedBrakeTempData[brakeKey])); // Example: 80°C to 900°C
+         });
+
+
+        // Simulate fuel consumption
+        const fuelConsumedThisTick = (Math.random() * 0.02 + 0.01); // Consume 0.01 to 0.03 L per tick
+        fuelRemaining = Math.max(0, fuelRemaining - fuelConsumedThisTick);
+
+        // Simulate remaining laps (simple, based on average consumption)
+         if (lastLapFuelConsumption.length > 0) {
+             const averageCons = lastLapFuelConsumption.slice(-averageConsumptionLaps).reduce((sum, cons) => sum + cons, 0) / Math.min(lastLapFuelConsumption.length, averageConsumptionLaps);
+             lapsRemaining = calculateLapsRemaining(averageCons);
+         } else {
+             // Fallback or initial estimation if no lap data yet
+             lapsRemaining = Math.max(0, Math.floor(fuelRemaining / 2)); // Example initial guess
+         }
+
+
+        // Simulate end of lap and new lap
+        if (lapTimeCounter >= 60 && lapProgress < 0.01) { // Simulate end of lap every 60s
+            currentLap++;
+            const currentLapTime = lapTimeCounter;
+            if (bestLapTime === null || currentLapTime < bestLapTime) {
+                bestLapTime = currentLapTime;
+            }
+
+            // Calculate fuel consumption for the just finished lap
+            const fuelConsumedLastLap = fuelStartOfLap - fuelRemaining;
+            lastLapFuelConsumption.push(fuelConsumedLastLap);
+            // Keep consumption history limited
+            if (lastLapFuelConsumption.length > averageConsumptionLaps * 2) { // Keep a bit more history than average requires
+                lastLapFuelConsumption.shift();
+            }
+             fuelStartOfLap = fuelRemaining; // Update fuel at start of new lap
+
+
+            // Simulate sector times at the end of the lap
+            sectorTimes = [
+                (currentLapTime * 0.3 + Math.random() * 2 - 1),
+                (currentLapTime * 0.4 + Math.random() * 2 - 1),
+                (currentLapTime * 0.3 + Math.random() * 2 - 1)
+            ];
+             // Update personal best and absolute best sectors (simplified simulation)
+            sectorTimes.forEach((time, index) => {
+                if (personalBestSectorTimes[index] === null || time < personalBestSectorTimes[index]) {
+                    personalBestSectorTimes[index] = time;
+                }
+                 if (bestSectorTimes[index] === null || time < bestSectorTimes[index]) {
+                    bestSectorTimes[index] = time; // In a real game, this would come from data
+                }
+            });
+
+
+            lapTimeCounter = 0; // Reset lap time counter
+            isCleanLap = Math.random() > 0.2; // 80% chance of being a clean lap
+
+            position = Math.max(1, position + (Math.random() > 0.5 ? -1 : 1)); // Simulate position change
+             // Simulate class change occasionally (for demonstration)
+             const classNames = ['GT3', 'Formula 4', 'NASCAR Cup', 'Super Formula', 'LMP2'];
+             if (Math.random() < 0.01) { // Reduced chance to change class
+                 className = classNames[Math.floor(Math.random() * classNames.length)];
+             }
+
+             // Simulate rival position and gap changes at the end of the lap
+             simulatedRivals.forEach(rival => {
+                 // Simulate a small variation in gap
+                 rival.gap += (Math.random() * 0.05 - 0.025); // Small continuous variation
+                 // Ensure gap doesn't become too small if they are close
+                 if (Math.abs(rival.gap) < 0.1 && Math.random() < 0.02) { // Small chance to "zero" the gap if they are very close
+                  rival.gap = 0;
+             }
+        });
+
+
+             // Simulate session type change occasionally at the end of the lap
+             const sessionTypes = ['Prática', 'Qualy', 'Corrida'];
+             if (Math.random() < 0.05) { // Reduced chance to change session
+                 currentSession = sessionTypes[Math.floor(Math.random() * sessionTypes.length)];
+             }
+
+             // Simulate gaining a penalty occasionally at the end of the lap
+             if (Math.random() < 0.3 && penalties < dqLimit) { // Increased chance to gain a penalty for demo
+                 penalties++;
+             }
+
+             // Simulate track condition change occasionally at the end of the lap
+             const raceConditions = ['Dry', 'Wet'];
+             if (Math.random() < 0.05) { // Reduced chance to change race condition
+                 raceCondition = raceConditions[Math.floor(Math.random() * raceConditions.length)];
+             }
+
+             // Simulate pit stop on pitStopLap
+             if (currentLap === pitStopLap) {
+                 simulatePitStop();
+             }
+
+
+        } else if (lapTimeCounter < 60 && lapProgress > 0.99) {
+             // Reset sector times during the lap
+             sectorTimes = [null, null, null];
+        }
+
+        // Simulate continuous gap variation during the lap
+        simulatedRivals.forEach(rival => {
+             // Add a small random variation to the gap every tick
+             rival.gap += (Math.random() * 0.05 - 0.025); // Small continuous variation
+             // Ensure gap doesn't become too small if they are close
+             if (Math.abs(rival.gap) < 0.1 && Math.random() < 0.02) { // Small chance to "zero" the gap if they are very close
+                  rival.gap = 0;
+             }
+        });
+
+
+        // Update HTML elements with simulated data
+        document.getElementById('volta').textContent = `${currentLap}/${totalLaps}`; // Updated Lap Display
+        document.getElementById('lap_time').textContent = formatarTempo(lapTimeCounter);
+        document.getElementById('melhor').textContent = formatarTempo(bestLapTime);
+        document.getElementById('velocidade').textContent = speed.toFixed(1);
+        // document.getElementById('rpm').textContent = Math.floor(rpm); // Updated by atualizarRPM
+        document.getElementById('position').textContent = position;
+        document.getElementById('totalDrivers').textContent = totalDrivers;
+        document.getElementById('class-name').textContent = className; // Update class name
+
+        document.getElementById('circuito').textContent = 'Interlagos (Simulado)';
+        // document.getElementById('status').textContent = currentSession; // Updated by atualizarSession
+
+        atualizarDelta(delta);
+        atualizarLedVolta(isCleanLap);
+        atualizarFuel(fuelRemaining, lapsRemaining); // Updates fuel info and icon and consumption
+        // Ensure inputHistory is not empty before accessing the last element
+        if (inputHistory.length > 0) {
+             atualizarInputMeters(inputHistory[inputHistory.length - 1].brake, inputHistory[inputHistory.length - 1].throttle, inputHistory[inputHistory.length - 1].steering);
+        }
+
+        atualizarRPM(rpm); // Update RPM display with color transition
+        atualizarSession(currentSession); // Update session status and color
+        atualizarPenalties(penalties, dqLimit); // Update penalties and DQ limit
+        atualizarRaceCondition(raceCondition); // Update race condition
+        updateBrakeDisplay(simulatedBrakeTempData); // Update brake temperatures
+
+
+        // Update sectors with best/personal best status
+        atualizarSetor('sector1', sectorTimes[0], sectorTimes[0] !== null && (bestSectorTimes[0] === null || sectorTimes[0] <= bestSectorTimes[0]), sectorTimes[0] !== null && (personalBestSectorTimes[0] === null || sectorTimes[0] <= personalBestSectorTimes[0]));
+        atualizarSetor('sector2', sectorTimes[1], sectorTimes[1] !== null && (bestSectorTimes[1] === null || sectorTimes[1] <= bestSectorTimes[1]), sectorTimes[1] !== null && (personalBestSectorTimes[1] === null || sectorTimes[1] <= personalBestSectorTimes[1]));
+        atualizarSetor('sector3', sectorTimes[2], sectorTimes[2] !== null && (bestSectorTimes[2] === null || sectorTimes[2] <= bestSectorTimes[2]), sectorTimes[2] !== null && (personalBestSectorTimes[2] === null || sectorTimes[2] <= personalBestSectorTimes[2]));
+
+
+        // Update car position on the track map (linear simulation)
+        const carPosition = document.getElementById('car-position');
+        const trackMap = document.querySelector('.track-map');
+        const mapWidth = trackMap.offsetWidth;
+        const mapHeight = trackMap.offsetHeight;
+
+        const posX = lapProgress * mapWidth;
+        const posY = mapHeight / 2; // Keep centered vertically for this simulation
+
+        carPosition.style.left = posX + 'px';
+        carPosition.style.top = posY + 'px';
+
+
+        // Update the input timeline graph on the canvas
+        drawInputTimeline();
+
+        // Update rival list display
+        updateRivalsDisplay(simulatedRivals); // Corrected typo here
+
+        // Update tire data display
+        updateTireDisplay(simulatedTireData);
+
+
+        // Simulate coach advice based on delta
+        const coachingAdviceDiv = document.getElementById('coaching-advice');
+        const alertasDiv = document.getElementById('alertas');
+
+        if (delta > 0.8) {
+            coachingAdviceDiv.textContent = "Você está perdendo bastante tempo. Analise seus últimos inputs.";
+            alertasDiv.innerHTML = '<div><i class="fas fa-exclamation-triangle"></i> Status: Atenção Crítica</div>';
+            alertasDiv.classList.add('alerta');
+        } else if (delta > 0.3) {
+            coachingAdviceDiv.textContent = "Você está um pouco mais lento que sua melhor volta. Tente ser mais consistente.";
+            alertasDiv.innerHTML = '<div><i class="fas fa-exclamation-triangle"></i> Status: Atenção</div>';
+            alertasDiv.classList.add('alerta');
+        } else if (delta < -0.5) {
+             coachingAdviceDiv.textContent = "Excelente! Você está bem mais rápido que sua melhor volta. Mantenha o ritmo!";
+             alertasDiv.innerHTML = '<div><i class="fas fa-check-circle"></i> Status: Ótimo</div>';
+             alertasDiv.classList.remove('alerta');
+        }
+        else {
+            coachingAdviceDiv.textContent = "Mantendo um bom ritmo. Continue focado nos pontos de frenagem e aceleração.";
+            alertasDiv.innerHTML = '<div><i class="fas fa-check-circle"></i> Status: ok</div>';
+            alertasDiv.classList.remove('alerta');
+        }
+    }
+
+    // The simulation starts on window.onload after canvas resize
+
+  </script>
+</body>
+</html>
