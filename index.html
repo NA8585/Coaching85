@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coaching NR85 IA - Página Inicial</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Base styles for body */
+    body {
+      background: #121212; /* Dark background */
+      color: #0099ff; /* Primary blue color */
+      font-family: 'Poppins', sans-serif; /* Use Poppins font */
+      display: flex; /* Use flexbox for layout */
+      flex-direction: column; /* Stack elements vertically */
+      justify-content: space-between; /* Space out content and footer */
+      align-items: center; /* Center horizontally */
+      min-height: 100vh; /* Full viewport height */
+      padding: 20px; /* Add some padding */
+      position: relative; /* Needed for relative positioning */
+      overflow-x: hidden; /* Prevent horizontal scroll */
+    }
+
+    /* Container styling matching the dashboard */
+    .container {
+        border: 2px solid #3b82f6; /* blue-500 */
+        padding: 20px;
+        border-radius: 8px;
+        background-color: #1f2937; /* gray-800 or similar dark background */
+        box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5), 0 2px 4px -1px rgba(59, 130, 246, 0.4); /* blue-500 shadow */
+        text-align: center; /* Center text content */
+        max-width: 600px; /* Reverted max-width as images are removed */
+        width: 100%; /* Make it responsive */
+        margin-bottom: 20px; /* Space between container and footer text */
+        flex-grow: 1; /* Allow container to grow */
+        display: flex; /* Use flexbox for header and content */
+        flex-direction: column;
+        align-items: center;
+        position: relative; /* Needed for z-index */
+        z-index: 1; /* Ensure it's above the background if any */
+    }
+
+    /* Header styling */
+    .header {
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(59, 130, 246, 0.5); /* blue-700 border with opacity */
+        margin-bottom: 20px;
+        width: 100%; /* Make header take full width of container */
+    }
+
+    /* Logo styling */
+    .logo {
+        font-size: 2rem; /* Larger font size */
+        color: #ffffff; /* White color */
+        display: flex; /* Use flexbox to align logo parts */
+        justify-content: center; /* Center logo parts */
+        align-items: baseline; /* Align text baseline */
+    }
+
+    .logo i {
+        margin-right: 10px; /* Space after icon */
+    }
+
+     /* Style for "Coaching" (standard white) */
+     .text-coaching {
+        color: #ffffff; /* White color */
+        font-family: 'Poppins', sans-serif; /* Use Poppins font */
+        font-size: 1em; /* Standard size */
+     }
+
+     /* Container for NR85 with gradient */
+     .gradient-text-nr85 {
+        display: inline-flex; /* Use inline-flex to keep it inline but allow flex properties */
+        align-items: baseline; /* Align text baseline */
+        background: linear-gradient(to right, #ff0000, #ffffff, #00ff00); /* Red, White, Green gradient */
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+        font-family: 'Poppins', sans-serif; /* Keep Poppins or change if desired */
+        margin-left: 5px; /* Space after Coaching */
+     }
+
+     /* Size adjustment for 'N' */
+     .gradient-text-nr85 .n {
+         font-size: 1.2em; /* Make N larger (adjust value as needed) */
+         line-height: 1; /* Adjust line height */
+     }
+
+      /* Size adjustment for 'R85' */
+      .gradient-text-nr85 .r85 {
+         font-size: 0.8em; /* Make R85 smaller (adjust value as needed) */
+         line-height: 1; /* Adjust line height */
+      }
+
+
+     /* Gradient text for IA with futuristic font */
+     .gradient-text-ia {
+        background: linear-gradient(to right, #00ffff, #00bfff); /* Cyan to Deep Sky Blue gradient */
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+        font-family: 'Orbitron', sans-serif; /* Futuristic font */
+        font-weight: 700; /* Bold weight for Orbitron */
+        margin-left: 5px; /* Space before IA */
+     }
+
+    /* Main content area */
+    .main-content {
+        font-size: 1.1rem; /* Reverted font size for main content */
+        line-height: 1.6; /* Reverted line height */
+        color: #bfdbfe; /* blue-200 or similar light blue */
+        text-align: center; /* Center text content */
+        margin-top: 20px; /* Space above the text */
+        padding-top: 0; /* Removed padding top */
+        border-top: none; /* Removed border top */
+        width: 100%; /* Take full width */
+        max-width: 600px; /* Match container max-width */
+        position: relative; /* Needed for z-index */
+        z-index: 1; /* Ensure it's above other content */
+    }
+
+    /* Add some spacing for paragraphs */
+    .main-content p {
+        margin-bottom: 15px; /* Reverted margin for paragraphs */
+    }
+
+    /* Remove bottom margin from the last paragraph */
+    .main-content p:last-child {
+        margin-bottom: 0;
+    }
+
+    /* Footer styling for the special message */
+    .footer-message {
+        font-size: 0.9rem; /* Slightly smaller font for footer */
+        color: #ffc107; /* Golden color */
+        text-align: center; /* Center text */
+        margin-top: 30px; /* Space above the footer */
+        padding-top: 15px; /* Padding at the top of the footer */
+        border-top: 1px solid rgba(255, 193, 7, 0.3); /* Subtle golden border */
+        width: 100%; /* Take full width */
+        max-width: 600px; /* Match container max-width */
+        position: relative; /* Needed for z-index */
+        z-index: 1; /* Ensure it's above background */
+        text-shadow: 0 0 5px rgba(255, 193, 7, 0.5); /* Subtle text shadow for highlight */
+    }
+
+
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <div class="logo">
+        <i class="fas fa-headset"></i> <span class="text-coaching">Coaching</span> <span class="gradient-text-nr85"><span class="n">N</span><span class="r85">R85</span></span> <span class="gradient-text-ia">IA</span>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <p>Bem vindo ao Coaching NR85 IA.</p>
+      <p>Um aplicativo para você que quer ter um engenheiro pessoal para ajudar na sua Corrida!</p>
+      <p>Nada na vida acontece por acaso, Tudo no tempo de Deus.</p>
+    </div>
+
+  </div>
+
+  <div class="footer-message">
+      " Em nome de Deus, seja feita a vontade dele".
+  </div>
+
+</body>
+</html>
